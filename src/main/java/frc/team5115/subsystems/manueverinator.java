@@ -56,7 +56,7 @@ public class manueverinator {
         } else {
             System.out.println("No target found. Stopping.");
             //In the future, maybe we should add a scanning function.
-            Robot.dt.drive(0, 0, 0);
+            Robot.dt.drive(0, 0.15, 0);
         }
     }
 
@@ -240,8 +240,8 @@ public class manueverinator {
 
 /*
 Forrest: Tele-auto
-    In:
-    Out. Requested Movement of the motors.
+    In: LL
+    Out: Requested Movement of the robot.
 Olivia and Laura: Feedback, PIDs.
     In: Positions and states of Robot parts
     Out: (End) Movements of motors and pneumatics on robot. Drive train
@@ -255,5 +255,14 @@ Luke: Controller Wrapper. Easy to switch controllers, going from axes to movemen
     In: (Begin) Controllers
     Out: X and Y from controller
 Jerrison: Autonomous stuff. Map out init profiles.
+
+Things I want it to be able to do.
+Get a target from the ground.
+line up to a target.
+know its position in the field.
+LEARN HOW TO USE ENCODERS.
+
+
+
  */
 

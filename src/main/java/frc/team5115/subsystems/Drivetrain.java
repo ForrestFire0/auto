@@ -63,8 +63,8 @@ public class Drivetrain {
         this.drive(y,P,1);
     }
 
-    void angleHold(double currentAngle) { //Overridden magic.
-        this.angleHold(currentAngle, 0, 0);
+    void angleHold(double targetAngle) { //Overridden magic.
+        this.angleHold(0, targetAngle, 0);
     }
 
     public void RBW(double x, double y) { //rotate by wire
