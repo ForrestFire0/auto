@@ -1,27 +1,22 @@
 package frc.team5115.robot;
-
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
-
 import frc.team5115.subsystems.*;
 
-import java.awt.*;
-
-//todome make the navx a robot variable, not a manuverinator file.
 //todome make a calibration method to move it to a certain distance and know the angle. Basically a calibration method for the angle of the limelight.
 public class Robot extends TimedRobot {
     public Joystick joy;
-    public Drivetrain dt;
+    public static Drivetrain dt;
     public manueverinator manueverinatorinator;
-    public NavX navX;
-    public EncoderMngr em;
+    public static NavX navX;
+    public Auto auto;
+
 
     public void robotInit() {
         joy = new Joystick(0);
         dt = new Drivetrain();
         navX = new NavX();
         manueverinatorinator = new manueverinator();
-        em = new EncoderMngr();
 
         navX.navxAngleReset(); //if the button is pressed reset the navx angle. Do this when relative to the wall.
         dt.resetTargetAngle(); //set the target angle to where we are looking.
@@ -30,23 +25,19 @@ public class Robot extends TimedRobot {
     public void teleopPeriodic() {
         navX.runTick();
 
-        System.out.println("leftRate: " + em.leftRate() + " rightRate: " + em.rightRate());
-
         if(joy.getRawButton(8)) {
             System.out.println("------------------");
-            manueverinatorinator.lineUp(); //follow to the thingy.
+            manueverinatorinator.debug(); //follow to the thingy.
         }
 
         else {
-            //dt.knightlyDrive(joy.getRawAxis(0), joy.getRawAxis(1));
-            dt.RBW(joy.getRawAxis(0), joy.getRawAxis(1)); //Drive by wire based on the angle.
+            dt.driveByWire(joy.getRawAxis(0), joy.getRawAxis(1)); //Drive by wire based on the angle.
         }
 
         if(joy.getRawButton(9)) { //press this button to calibrate.
             navX.navxAngleReset(); //if the button is pressed reset the navx angle. Do this when relative to the wall.
             dt.resetTargetAngle();
         }
-
     }
 
     @Override
@@ -61,6 +52,15 @@ public class Robot extends TimedRobot {
         dt.resetTargetAngle();
     }
 
+    @Override
+    public void autonomousInit() {
+        auto = new Auto();
+    }
+
+    @Override
+    public void autonomousPeriodic() {
+        auto.runAuto();
+    }
 }
 
 /**

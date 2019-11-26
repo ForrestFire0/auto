@@ -1,4 +1,3 @@
-Java
+Limelight Code
 ---
-
-This example involves building and deploying Java sources. This should be all you need to get started, however there are plenty of resources online for building more advanced java projects should you require.
+This is Forrest's place to experiment with limelight stuff. Hi Future Forrest!

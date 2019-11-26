@@ -5,8 +5,9 @@ import edu.wpi.first.wpilibj.SPI;
 
 public class NavX {
     private AHRS navx; //turn baby.
-    double angle; //angle is total accumulated.
-    double yaw; //relative to start, from -180 to 180.
+    private double angle; //angle is total accumulated.
+    private double yaw; //relative to start, from -180 to 180.
+    private double yVelocity;
 
     public NavX() {
         navx = new AHRS(SPI.Port.kMXP);
@@ -36,12 +37,17 @@ public class NavX {
         return yaw;
     }
 
+    public double getYVelocity() {
+        return yVelocity;
+    }
+
     /**
      * Run a update the values.
      */
     public void runTick() {
         angle = navx.getAngle();
         yaw = navx.getYaw();
+        yVelocity = navx.getVelocityY();
     }
 
     public void printVelocities() { //it is for seeing if the x and y velocities are any good. Possible use for kightly drive.

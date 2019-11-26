@@ -2,6 +2,7 @@ package frc.team5115.subsystems;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import edu.wpi.first.wpilibj.Timer;
 import frc.team5115.robot.Robot;
 
 public class Drivetrain {
@@ -18,11 +19,13 @@ public class Drivetrain {
         backLeft = new TalonSRX(3);
         backRight = new TalonSRX(4);
 
-        frontLeft.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder);
-        frontRight.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder);
-        backLeft.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder);
-        backRight.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder);
+        frontLeft.set(ControlMode.Follower, backLeft.getDeviceID());
+        frontRight.set(ControlMode.Follower, backRight.getDeviceID());
 
+        frontLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+        frontRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+        backLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+        backRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
     }
 
     public void drive(double y, double x, double throttle) { //Change the drive output
@@ -32,19 +35,12 @@ public class Drivetrain {
         double leftSpd = (x + y) * throttle;
         double rightSpd = (x - y) * throttle;
         //set the outputs. let the magic occur
-        frontLeft.set(ControlMode.PercentOutput, leftSpd);
+        //convert ticks to meters
         backLeft.set(ControlMode.PercentOutput, leftSpd);
-        frontRight.set(ControlMode.PercentOutput, rightSpd);
         backRight.set(ControlMode.PercentOutput, rightSpd);
-    }
 
-
-    public void resetEncoders() { //no idea when this is called if ever
-        //necessary for magic to occur.
-        frontLeft.set(ControlMode.PercentOutput, 0);
-        backLeft.set(ControlMode.PercentOutput, 0);
-        frontRight.set(ControlMode.PercentOutput, 0);
-        backRight.set(ControlMode.PercentOutput, 0);
+        System.out.println("rightSpd: " + rightSpd + "  Encoder Speed: " + backLeft.getSelectedSensorVelocity());
+        System.out.println("leftSpd: " + leftSpd + "  Encoder Speed: " + backRight.getSelectedSensorVelocity());
     }
 
     public void resetTargetAngle() { //set the current target angle to where we currently are.
@@ -67,7 +63,7 @@ public class Drivetrain {
         this.angleHold(0, targetAngle, 0);
     }
 
-    public void RBW(double x, double y) { //rotate by wire
+    public void driveByWire(double x, double y) { //rotate by wire
         double currentAngle = Robot.navX.getAngle();
         targetAngle += x*2.5; //at 50 ticks a second, this is 50 degrees a second because the max x is 1.
         angleHold(currentAngle, targetAngle, y);
@@ -80,15 +76,31 @@ public class Drivetrain {
         angleHold(currentAngle, targetAngle, y);
     }
 
-    public void fakeMechanum(double x, double y) {
-        if(Math.abs(x)<0.05 && Math.abs(y)<0.05) return;
+    public void tester() {
+        System.out.println("Starting Tester.");
+        System.out.println("Setting backright to full speed.");
+        double maxMotorSpeed = 0;
+        for (double i = 0; i < 1; i+=0.1) {
+            backRight.set(ControlMode.PercentOutput, i);
+            delay(50);
+        }
+        System.out.println("Motor on. Collecting values");
+        for(int i = 0; i < 100; i++) {
+           maxMotorSpeed = Math.max(backRight.getSelectedSensorVelocity(), maxMotorSpeed);
+           delay(10);
+        }
 
-        double currentAngle = Robot.navX.getAngle();
-        double desiredAngle = Math.atan2(x , y);
-        double throttle = Math.sqrt(Math.pow(x,2) + Math.pow(y,2));
-        targetAngle = currentAngle + (2*throttle*(desiredAngle - currentAngle)); //changes the target angle by just a bit every time until the desired is up against the current angle.
-        targetAngle = Math.toDegrees(targetAngle);
-        System.out.println("Current Angle: " + currentAngle + " targetAngle: " + targetAngle);
-        //angleHold(currentAngle, targetAngle, throttle);
+        frontRight.set(ControlMode.PercentOutput, 0);
+        System.out.println("Done collecting. Max speed was " + maxMotorSpeed);
+    }
+
+    public void delay(double millis) {
+        long micros = (long) millis*1000;
+
+        try {
+            Thread.sleep(micros);
+        } catch (InterruptedException e) {
+            System.out.println("For some reason the sleep failed... Here's the exception: " + e.getMessage());
+        }
     }
 }

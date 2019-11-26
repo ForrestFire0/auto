@@ -13,10 +13,10 @@ import frc.team5115.robot.Robot;
 public class manueverinator {
 
     private static NetworkTableEntry tx; // Measure of X offset angle
-    private static NetworkTableEntry ty; // Measure of Y offset angle
+    private NetworkTableEntry ty; // Measure of Y offset angle
     private NetworkTableEntry tv;
 
-    // Variables needed in calculation(s) -> All are static because thats what limelight wants ¯\_(ツ)_/¯
+    // Variables needed in calculation(s) -> All are static because that's what limelight wants ¯\_(ツ)_/¯
 
     private double xOffset; // The horizontal shift the robot needs to make in order to align. FROM THE CENTER OF THE ROBOT.
     private double yOffset; // The vertical shift the robot needs to make in order to align. FROM THE CENTER OF THE ROBOT
@@ -33,8 +33,6 @@ public class manueverinator {
         ty = limelight.getEntry("ty"); //Angle in y of degrees
         tv = limelight.getEntry("tv"); //have target?
     }
-
-
     /**
      * aims directly at the target.
      */
@@ -50,13 +48,13 @@ public class manueverinator {
      * USE THE PREVIOUS CONTROL FROM THE JOYSTICK. This way the robot can keep going the way it was steered, and look that way first.
      * You can tell the drivers to look a little to the left of the target and then go right, therefore ensuring that the robot is at the correct angle of rotation.
      */
+
     public void aim() {
         if (tv.getDouble(0) == 1) {
             Robot.dt.angleHold(ty.getDouble(0));
         } else {
             System.out.println("No target found. Stopping.");
             //In the future, maybe we should add a scanning function.
-            Robot.dt.drive(0, 0.15, 0);
         }
     }
 
@@ -107,7 +105,6 @@ public class manueverinator {
         return Math.cos(Math.toRadians(n));
     }
 
-
     private double findAngle() {
         if (yOffset > -30) { //We are close to the wall, so no matter making it anything but the goal point.
             return 0;
@@ -150,7 +147,6 @@ public class manueverinator {
         //everything checked out. Send value back.
         return angleRequested;
     }
-
     /**
      * @param targetY how far out from the target you want to point at.
      * @return the angle we want to hold relative to the target. 0 is strait ahead.
@@ -163,7 +159,7 @@ public class manueverinator {
         double targetX = 0; //on the line out
 
         double deltaX = targetX - currentX; //get the difference in x values;
-        //System.out.print("getAngleFrom...: TgtX: " + (int) targetX + " - CurrntX: " + (int) currentX + " = ");
+        //System.out.print("getAngleFrom...: TgtX: " + (int) targetX + " - currentX: " + (int) currentX + " = ");
         //System.out.println((int) deltaX + " = deltaX");
 
         double deltaY = Math.abs(targetY - currentY); //get the difference in y values;
@@ -173,7 +169,6 @@ public class manueverinator {
         double radians = Math.atan2(deltaX, deltaY); //uses tangent to get angle.
         return Math.toDegrees(radians); //returns angle in radians.
     }
-
     /**
      * @return the target point in 3d space. Minimum -30 inches.
      */
@@ -183,8 +178,6 @@ public class manueverinator {
         return Math.min(0.67 * yOffset, -30); //takes the smaller of the two values. Once the calculated target point is further forward than -30, the program designateds -30 as the target location.
         //Also note that this is the center of the robot, not the front of the robot. Add the relativeLLy to get the distance to the front of the robot.
     }
-
-
     /**
      * Lines up the robot to the target found by the limelight.
      */
@@ -210,6 +203,20 @@ public class manueverinator {
         Robot.dt.angleHold(getYaw, targetAngle, followingTrackSpeed);//followingTrackSpeed);
     }
 
+    public void followTarget() {
+        if (tv.getDouble(0) == 0) { //no target found.
+            System.out.println("main: ERROR : NO TARGET FOUND");
+            Robot.dt.drive(0, 0, 0);
+            return;
+        }
+
+        //point at it
+        aim();
+
+        //go forward based on speed
+
+    }
+
     /**
      * @return speed in which one should travel to the target. based on yOffset.
      * preconditions: yOffset
@@ -230,6 +237,7 @@ public class manueverinator {
 
         return leftOver;
     }
+
 }
 
 
@@ -242,6 +250,7 @@ public class manueverinator {
 Forrest: Tele-auto
     In: LL
     Out: Requested Movement of the robot.
+
 Olivia and Laura: Feedback, PIDs.
     In: Positions and states of Robot parts
     Out: (End) Movements of motors and pneumatics on robot. Drive train
@@ -260,7 +269,10 @@ Things I want it to be able to do.
 Get a target from the ground.
 line up to a target.
 know its position in the field.
-LEARN HOW TO USE ENCODERS.
+
+ - LEARN HOW TO USE ENCODERS.
+ - Use GRIP to find the location of power cubes.
+ -
 
 
 
