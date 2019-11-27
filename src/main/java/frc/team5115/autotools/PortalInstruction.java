@@ -30,10 +30,15 @@ public class PortalInstruction extends Instruction {
     public boolean finishedWithStep() {
         return stage == 4;
     }
+
+    @Override
+    public double getOrientation() {
+        return orientation;
+    }
 }
 
 /*
 Stages:
 1. Use LL to move on in.
-2. Use dead reconing to go the extra distance.
+2. Use dead reconing to go the extra distance until SOMETHING HERE
  */

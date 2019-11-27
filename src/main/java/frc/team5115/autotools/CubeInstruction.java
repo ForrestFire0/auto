@@ -2,7 +2,7 @@ package frc.team5115.autotools;
 
 public class CubeInstruction extends Instruction {
 
-    public CubeInstruction(double x, double y) {
+    CubeInstruction(double x, double y) {
         super(x, y);
     }
 
@@ -25,6 +25,16 @@ public class CubeInstruction extends Instruction {
     @Override
     public boolean finishedWithStep() {
         return stage == 3;
+    }
+
+    @Override
+    public double getOrientation() {
+        try {
+            throw new Throwable("Error! Cannot get Orientation from a cube!");
+        } catch (Throwable throwable) {
+            System.out.println("Somehow you failed to fail. (Cube Instructions Ln35)");
+        }
+        return 0;
     }
 }
 /*

@@ -5,11 +5,11 @@ import frc.team5115.subsystems.*;
 
 //todome make a calibration method to move it to a certain distance and know the angle. Basically a calibration method for the angle of the limelight.
 public class Robot extends TimedRobot {
-    public Joystick joy;
+    Joystick joy;
     public static Drivetrain dt;
     public manueverinator manueverinatorinator;
     public static NavX navX;
-    public Auto auto;
+    Auto auto;
 
 
     public void robotInit() {
@@ -17,7 +17,7 @@ public class Robot extends TimedRobot {
         dt = new Drivetrain();
         navX = new NavX();
         manueverinatorinator = new manueverinator();
-
+        auto = new Auto();
         navX.navxAngleReset(); //if the button is pressed reset the navx angle. Do this when relative to the wall.
         dt.resetTargetAngle(); //set the target angle to where we are looking.
     }
@@ -26,12 +26,12 @@ public class Robot extends TimedRobot {
         navX.runTick();
 
         if(joy.getRawButton(8)) {
-            System.out.println("------------------");
-            manueverinatorinator.debug(); //follow to the thingy.
+            auto.runAuto();
         }
 
         else {
             dt.driveByWire(joy.getRawAxis(0), joy.getRawAxis(1)); //Drive by wire based on the angle.
+            auto.IMUCalc();
         }
 
         if(joy.getRawButton(9)) { //press this button to calibrate.
@@ -50,11 +50,6 @@ public class Robot extends TimedRobot {
     public void teleopInit() {
         System.out.println("Starting! Reset dt Target Angle");
         dt.resetTargetAngle();
-    }
-
-    @Override
-    public void autonomousInit() {
-        auto = new Auto();
     }
 
     @Override

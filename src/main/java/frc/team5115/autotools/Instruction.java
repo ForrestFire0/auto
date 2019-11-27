@@ -12,9 +12,8 @@ abstract public class Instruction {
     Instruction(double x, double y) {
         this.x = x;
         this.y = y;
+        stage = 1;
     }
-    //create a new instruction based on other things?
-
 
     public double getX() {
         return x;
@@ -32,10 +31,12 @@ abstract public class Instruction {
         return stage;
     }
 
-    public int nextStage() {
+    public void nextStage() {
         stage++;
-        return getStage();
+        System.out.println("Moving to stage " + stage + "");
     }
+
+    abstract public double getOrientation();
 
     abstract public int getPipeline();
 

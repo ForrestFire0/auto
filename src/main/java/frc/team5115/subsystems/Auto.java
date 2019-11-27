@@ -4,18 +4,13 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.team5115.autotools.Instruction;
-import frc.team5115.autotools.LocationInstruction;
 import frc.team5115.autotools.SimpleAutoSeries;
 
 import static frc.team5115.robot.Robot.*;
-import static java.lang.Math.pow;
-import static java.lang.Math.sqrt;
+import static java.lang.Math.*;
 
-// Docs: http://docs.limelightvision.io/en/latest/networktables_api.html
+/**The base class for all autonomous using the limelight.*/
 
-/**
- * The base class for all autonomous using the limelight.
- */
 public class Auto {
 
     private NetworkTableEntry tx; // Measure of X offset angle
@@ -31,6 +26,9 @@ public class Auto {
 
     private int currentPipeline;
 
+    private double maxForwardSpeed = 1; //The forward speed multiplier for moving.
+    private final int maxAngleError = 3; //maximum angle error.
+
 
     /**
      * Creates the limelight table entries.
@@ -42,12 +40,12 @@ public class Auto {
         ty = limelight.getEntry("ty"); //Angle in y of degrees
         tv = limelight.getEntry("tv"); //have target?
         pipeline = limelight.getEntry("pipeline");
-        currentStep = SimpleAutoSeries.getCurrentStep();//get the first step to work on.
-
+        pipeline.setNumber(0);
         currentPipeline = 0;
+
+        currentStep = SimpleAutoSeries.getCurrentStep();//get the first step to work on.
     }
 
-    private boolean finishedWithStep = false;
     public void runAuto() {
         IMUCalc(); //Calculate the current speed and such...
 
@@ -62,31 +60,51 @@ public class Auto {
         //An Instruction object can do things like go to a cube. It needs to go through an instruction object... Does the instruction object have methods??? How do things happen? Instructions also need to have things that can be satisfied
         //The small answer: Don't worry about that crap now. Just make it go to the location.
 
-        switch(currentStep.getType()) {
+        switch (currentStep.getType()) {
             case "Location":
                 switch (currentStep.getStage()) {
-                    case 2:
-                        if(navigate(currentStep)) {
-                            currentStep.nextStage();
-                        }
-                        break;
                     case 1:
-                    case 3:
-                        if(aim(currentStep)) {
+                        if (aim(currentStep)) { //aims at the next step before preceding.
                             currentStep.nextStage();
                         }
                         break;
+                    case 2:
+                        if (navigate(currentStep)) { //navagate to the point
+                            currentStep.nextStage();
+                        }
+                        break;
+                    case 3:
+                        if (aim(currentStep.getOrientation())) { //aim at an angle
+                            currentStep.nextStage();
+                        }
                     default:
                         System.out.println("Error: Stage not recognized. Current Stage: " + currentStep.getStage() + " in Step " + SimpleAutoSeries.getStepNum());
                 }
                 break;
             case "Portal":
+                switch (currentStep.getStage()) {
+                    case 1:
+                        if (lineUp(currentStep)) {
+                            currentStep.nextStage();
+                        }
+                        break;
+                    case 2:
+                        if (deadRecon(currentStep)) {
+                            currentStep.nextStage();
+                            //xLoc = currentStep.getX() This line needs to set the location of the robot once the step has completed.
+                        }
+                        break;
+
+                }
                 break;
             case "Cube":
-                break;
+                if (basicVA(currentStep)) { //basic vision aim.
+                    currentStep.nextStage();
+                }
         }
 
-        if(currentStep.finishedWithStep()) {
+        if (currentStep.finishedWithStep()) {
+            System.out.println("Finished with Step: " + currentStep);
 
             currentStep = SimpleAutoSeries.getNextStep();
             if (currentStep == null) {
@@ -94,11 +112,17 @@ public class Auto {
             }
             System.out.println("Moved on to next step, which is: " + currentStep);
         }
-
     }
 
-    private void goForth(Instruction currentStep) {
+    private boolean deadRecon(Instruction step) {
+        dt.angleHold(currentAngle, step.getOrientation() - 180, maxForwardSpeed); //look strait into the portal.
+        return false; //todome This needs to stop when the step has completed.
+    }
 
+
+    private boolean aim(double orientation) {
+        dt.angleHold(currentAngle, orientation, 0);
+        return Math.abs(currentAngle - orientation) < maxAngleError;
     }
 
 
@@ -106,14 +130,21 @@ public class Auto {
      * @param currentStep The game peice to aim at
      * @return error that we are off by.
      */
-    private double basicVA(Instruction currentStep) {
+    private boolean basicVA(Instruction currentStep) {
         setPipeline(currentStep.getPipeline()); //this ensures that we are looking at the right pipeline for the object.
+        double angle;
         if (tv.getDouble(0) == 1) { // if we dont have a target
-            dt.angleHold(ty.getDouble(0)); //Piont at it.
+            angle = ty.getDouble(0);
         } else {
             System.out.println("No target found!");
+            angle = maxAngleError + 1;
         }
-        return 10;
+
+        double throttle = 3/angle; //3 degrees off is full throttle
+        throttle = Math.max(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
+        dt.angleHold(currentAngle, angle, throttle);
+
+        return abs(angle) < maxAngleError;
     }
 
     //Navigate to a game piece. If we have made it too the game piece it will stop the
@@ -124,17 +155,17 @@ public class Auto {
         double currentY = yLoc;
 
         double deltaX = targetX - currentX; //get the difference in x values;
-        double deltaY = Math.abs(targetY - currentY); //get the difference in y values;
+        double deltaY = targetY - currentY; //get the difference in y values;
 
         if (deltaX < 5 || deltaY < 5) {
             return true;
         }
 
-        double radians = Math.atan2(deltaX, deltaY); //uses tangent to get angle.
-        double angle = Math.toDegrees(radians); //returns angle in radians.
+        double radians = atan2(deltaX, deltaY); //uses tangent to get angle.
+        double angle = toDegrees(radians); //returns angle in radians.
 
-        double throttle = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
-        throttle = Math.max(throttle + 0.1, 0.5); //max speed 0.5. Also add a minimum speed of 0.1.
+        double throttle = sqrt(pow(deltaX, 2) + pow(deltaY, 2)) / 300;
+        throttle = Math.max(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
         dt.angleHold(currentAngle, angle, throttle);
         return false;
     }
@@ -150,16 +181,16 @@ public class Auto {
         double angle = Math.toDegrees(radians); //returns angle in radians.
 
         dt.angleHold(currentAngle, angle, 0);
-        return currentAngle - angle < 5; //If we are close to our target.
+        return abs(currentAngle - angle) < maxAngleError; //If we are close to our target.
     }
 
-    private void IMUCalc() { //update the current location of the robot based on the Accelerometer
+    public void IMUCalc() { //update the current location of the robot based on the Accelerometer. This is some serious bulshit right here.
         currentAngle = navX.getAngle();
-        double deltaY = sin(currentAngle + 90) * (navX.getYVelocity() / 0.0254) / 50;
-        double deltaX = cos(currentAngle + 90) * (navX.getYVelocity() / 0.0254) / 50;
+        double deltaY = sin(currentAngle) * (navX.getYVelocity() / 0.0254) * 0.02; //converts from M/s to inches/sec then * 0.02 seconds to get deltaInches.
+        double deltaX = cos(currentAngle) * (navX.getYVelocity() / 0.0254) * 0.02;
         yLoc += deltaY; //adds what we need.
         xLoc += deltaX; //adds what we need.
-        System.out.println("IMUCalC: CA: " + (int) +currentAngle + "|yLoc: " + (int) yLoc + "|xLoc: " + (int) xLoc);
+        System.out.println("IMUCalC: CurrentAngle: " + (int) +currentAngle + "|yLoc: " + (int) yLoc + "|xLoc: " + (int) xLoc);
         System.out.println("Delta X: " + deltaX + "|Delta Y: " + deltaY);
     }
 
@@ -277,6 +308,7 @@ public class Auto {
      * Lines up the robot to the target found by the limelight.
      */
     boolean lineUp(Instruction target) {
+        setPipeline(target.getPipeline());
         if (tv.getDouble(0) == 0) { //no target found.
             System.out.println("main: ERROR : NO TARGET FOUND");
             dt.drive(0, 0, 0);
@@ -292,15 +324,11 @@ public class Auto {
         double xOffset = locs[0];
         double yOffset = locs[1];
         double targetAngle;
-        if (yOffset > -30) { //We are close to the wall, so no matter making it anything but the goal point.
-            targetAngle = 0;
-        } else {
-            double targetY = locateTargetPoint(yOffset);
-            System.out.println("findAngle: TargetY: " + targetY);
-            double angle = getAngleFromTargetPoint(xOffset, yOffset, targetY);
-            angle = safeAngle(angle);
-            targetAngle = currentAngle + ((angle - currentAngle) / 2);
-        }
+        double targetY = locateTargetPoint(yOffset);
+        System.out.println("findAngle: TargetY: " + targetY);
+        double angle = getAngleFromTargetPoint(xOffset, yOffset, targetY);
+        angle = safeAngle(angle);
+        targetAngle = currentAngle + ((angle - currentAngle) / 2);
 
         //System.out.println("main: targetAngle: " + (int) targetAngle);
 
@@ -308,7 +336,7 @@ public class Auto {
         System.out.println(followingTrackSpeed);
         dt.angleHold(currentAngle, targetAngle, followingTrackSpeed);//followingTrackSpeed);
 
-        return yOffset < 10;
+        return yOffset > -20;
     }
 
     /**
@@ -366,17 +394,4 @@ Luke: Controller Wrapper. Easy to switch controllers, going from axes to movemen
     In: (Begin) Controllers
     Out: X and Y from controller
 Jerrison: Autonomous stuff. Map out init profiles.
-
-Things I want it to be able to do.
-Get a target from the ground.
-line up to a target.
-know its position in the field.
-
- - LEARN HOW TO USE ENCODERS.
- - Use GRIP to find the location of power cubes.
- -
-
-
-
- */
-
+*/

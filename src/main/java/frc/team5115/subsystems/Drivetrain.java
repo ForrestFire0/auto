@@ -13,6 +13,10 @@ public class Drivetrain {
     private TalonSRX backRight;
     private double targetAngle;
 
+    private double rightSpd;
+    private double leftSpd;
+
+
     public Drivetrain() {  //instantiation of the objects
         frontLeft = new TalonSRX(1);
         frontRight = new TalonSRX(2);
@@ -32,15 +36,11 @@ public class Drivetrain {
         //called lots of times per seconds.
         y *= -1;
 
-        double leftSpd = (x + y) * throttle;
-        double rightSpd = (x - y) * throttle;
-        //set the outputs. let the magic occur
-        //convert ticks to meters
+        double rleftSpd = Math.max((x + y) * throttle, 0.5);
+        double rrightSpd = Math.max((x - y) * throttle, 0.5);
+
         backLeft.set(ControlMode.PercentOutput, leftSpd);
         backRight.set(ControlMode.PercentOutput, rightSpd);
-
-        System.out.println("rightSpd: " + rightSpd + "  Encoder Speed: " + backLeft.getSelectedSensorVelocity());
-        System.out.println("leftSpd: " + leftSpd + "  Encoder Speed: " + backRight.getSelectedSensorVelocity());
     }
 
     public void resetTargetAngle() { //set the current target angle to where we currently are.
@@ -69,13 +69,6 @@ public class Drivetrain {
         angleHold(currentAngle, targetAngle, y);
     }
 
-    public void knightlyDrive(double x, double y) { //
-        double currentAngle = Robot.navX.getAngle();
-        targetAngle = targetAngle - x*3*y; //at 50 ticks a second, this is 50 degrees a second because the max x is 1.
-        //The faster we are moving forward (switch this data with encoder data) The faster we should rotate.
-        angleHold(currentAngle, targetAngle, y);
-    }
-
     public void tester() {
         System.out.println("Starting Tester.");
         System.out.println("Setting backright to full speed.");
@@ -90,11 +83,11 @@ public class Drivetrain {
            delay(10);
         }
 
-        frontRight.set(ControlMode.PercentOutput, 0);
+        backRight.set(ControlMode.PercentOutput, 0);
         System.out.println("Done collecting. Max speed was " + maxMotorSpeed);
     }
 
-    public void delay(double millis) {
+    void delay(double millis) {
         long micros = (long) millis*1000;
 
         try {

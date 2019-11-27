@@ -4,7 +4,7 @@ public class LocationInstruction extends Instruction{
 
     private double orientation;
 
-    public LocationInstruction(double x, double y, double orientation) {
+    LocationInstruction(double x, double y, double orientation) {
         super(x,y);
         this.orientation = orientation;
     }
