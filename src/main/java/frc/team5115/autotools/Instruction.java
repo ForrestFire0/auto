@@ -33,7 +33,7 @@ abstract public class Instruction {
 
     public void nextStage() {
         stage++;
-        System.out.println("Moving to stage " + stage + "");
+        System.out.println("Moving to stage " + stage + " in step " + toString());
     }
 
     abstract public double getOrientation();

@@ -5,10 +5,13 @@ public class SimpleAutoSeries {
 
     //The series of events we need to do.
     private static Instruction[] steps = {
-            new LocationInstruction(0, 10, 0), //Go to a location of interest
+            new LocationInstruction(0, 120, 90), //Go to a location of interest
+            new LocationInstruction(0, 0, 26), //Go to a location of interest
+
             //new CubeInstruction(10, 10), //find a cube. Pick it up.
             //new PortalInstruction( 0, 0, 180)
     };
+
     private static int currentStep = 0;
 
     /**

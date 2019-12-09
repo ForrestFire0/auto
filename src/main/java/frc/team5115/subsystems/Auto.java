@@ -5,6 +5,7 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.team5115.autotools.Instruction;
 import frc.team5115.autotools.SimpleAutoSeries;
+import frc.team5115.robot.Robot;
 
 import static frc.team5115.robot.Robot.*;
 import static java.lang.Math.*;
@@ -12,7 +13,6 @@ import static java.lang.Math.*;
 /**The base class for all autonomous using the limelight.*/
 
 public class Auto {
-
     private NetworkTableEntry tx; // Measure of X offset angle
     private NetworkTableEntry ty; // Measure of Y offset angle
     private NetworkTableEntry tv;
@@ -26,9 +26,8 @@ public class Auto {
 
     private int currentPipeline;
 
-    private double maxForwardSpeed = 1; //The forward speed multiplier for moving.
-    private final int maxAngleError = 3; //maximum angle error.
-
+    private final double maxForwardSpeed = 0.3; //The forward speed multiplier for moving.
+    private final int maxAngleError = 10; //maximum angle error.
 
     /**
      * Creates the limelight table entries.
@@ -44,21 +43,13 @@ public class Auto {
         currentPipeline = 0;
 
         currentStep = SimpleAutoSeries.getCurrentStep();//get the first step to work on.
+
+        System.out.println("Starting Autonomous. Starting Step 1: "  + currentStep);
     }
 
     public void runAuto() {
         IMUCalc(); //Calculate the current speed and such...
-
         currentStep = SimpleAutoSeries.getCurrentStep(); //Get the current step that we are working on...
-
-        //interpreter to do things based on the type of object.
-        // do different things based on the type of step we are working on.
-
-        //the big question: How do we do things that are based on the system? Do we use lambda stuff? Like so objects can pass in stuff about what to do when?
-        // Also: What about things that we do at the end or beginning of the routine? Like for the location, after we arrive we need to hit the angle requested in the location. Maybe for each game peice, there are other instructions.
-        //We need to at least have instructions inside other instructions... Maybe block extends game piece... And has things like location and such. The problem is that we need to be able to give it instructions and have it do them...
-        //An Instruction object can do things like go to a cube. It needs to go through an instruction object... Does the instruction object have methods??? How do things happen? Instructions also need to have things that can be satisfied
-        //The small answer: Don't worry about that crap now. Just make it go to the location.
 
         switch (currentStep.getType()) {
             case "Location":
@@ -77,6 +68,7 @@ public class Auto {
                         if (aim(currentStep.getOrientation())) { //aim at an angle
                             currentStep.nextStage();
                         }
+                        break;
                     default:
                         System.out.println("Error: Stage not recognized. Current Stage: " + currentStep.getStage() + " in Step " + SimpleAutoSeries.getStepNum());
                 }
@@ -98,8 +90,15 @@ public class Auto {
                 }
                 break;
             case "Cube":
-                if (basicVA(currentStep)) { //basic vision aim.
-                    currentStep.nextStage();
+                switch (currentStep.getStage()) {
+                    case 1:
+                        if (basicVA(currentStep, false)) {
+                            currentStep.nextStage();
+                        }
+                    case 2:
+                        if(basicVA(currentStep, true)) {
+                            currentStep.nextStage();
+                        }
                 }
         }
 
@@ -109,7 +108,7 @@ public class Auto {
             currentStep = SimpleAutoSeries.getNextStep();
             if (currentStep == null) {
                 System.out.println("Nice! You finished the auto routine! Congrats from Forrest in the past!");
-            }
+            } else
             System.out.println("Moved on to next step, which is: " + currentStep);
         }
     }
@@ -119,32 +118,39 @@ public class Auto {
         return false; //todome This needs to stop when the step has completed.
     }
 
-
     private boolean aim(double orientation) {
         dt.angleHold(currentAngle, orientation, 0);
         return Math.abs(currentAngle - orientation) < maxAngleError;
     }
 
-
     /**
      * @param currentStep The game peice to aim at
      * @return error that we are off by.
      */
-    private boolean basicVA(Instruction currentStep) {
+    private boolean basicVA(Instruction currentStep, boolean moveForward) {
         setPipeline(currentStep.getPipeline()); //this ensures that we are looking at the right pipeline for the object.
         double angle;
         if (tv.getDouble(0) == 1) { // if we dont have a target
-            angle = ty.getDouble(0);
+            angle = tx.getDouble(0) + currentAngle;
         } else {
-            System.out.println("No target found!");
-            angle = maxAngleError + 1;
+            System.out.println("No target found. Pointing at object.");
+            aim(currentStep); //just pointing generally.
+            return false;
         }
 
-        double throttle = 3/angle; //3 degrees off is full throttle
-        throttle = Math.max(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
+        double throttle = moveForward? 3/tx.getDouble(180) : 0; //3 degrees off is full throttle
+        throttle = Math.min(throttle, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
         dt.angleHold(currentAngle, angle, throttle);
 
-        return abs(angle) < maxAngleError;
+        if(!moveForward) {
+            return abs(angle) < maxAngleError;
+        } else {
+            return doWeHaveACubeYet();
+        }
+    }
+
+    private boolean doWeHaveACubeYet() {
+        return false; //todome fill this in with some sensor.
     }
 
     //Navigate to a game piece. If we have made it too the game piece it will stop the
@@ -157,16 +163,17 @@ public class Auto {
         double deltaX = targetX - currentX; //get the difference in x values;
         double deltaY = targetY - currentY; //get the difference in y values;
 
-        if (deltaX < 5 || deltaY < 5) {
+        if (deltaX < 5 && deltaY < 5) {
+            dt.drive(0,0,0);
             return true;
         }
 
-        double radians = atan2(deltaX, deltaY); //uses tangent to get angle.
+        double radians = atan2(deltaY, deltaX); //uses tangent to get angle.
         double angle = toDegrees(radians); //returns angle in radians.
 
         double throttle = sqrt(pow(deltaX, 2) + pow(deltaY, 2)) / 300;
-        throttle = Math.max(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
-        dt.angleHold(currentAngle, angle, throttle);
+        throttle = Math.min(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
+        dt.angleHold(currentAngle, angle, -throttle);
         return false;
     }
 
@@ -177,21 +184,27 @@ public class Auto {
         double deltaX = targetX - xLoc; //get the difference in x values;
         double deltaY = targetY - yLoc; //get the difference in y values;
 
-        double radians = Math.atan2(deltaX, deltaY); //uses tangent to get angle.
+        double radians = Math.atan2(deltaY, deltaX); //uses tangent to get angle.
         double angle = Math.toDegrees(radians); //returns angle in radians.
 
         dt.angleHold(currentAngle, angle, 0);
+//        System.out.println("Current Angle = " + currentAngle);
+//        System.out.println("angle = " + angle);
+//        System.out.println("MaxAngleErro = " + maxAngleError);
         return abs(currentAngle - angle) < maxAngleError; //If we are close to our target.
     }
 
     public void IMUCalc() { //update the current location of the robot based on the Accelerometer. This is some serious bulshit right here.
+
         currentAngle = navX.getAngle();
-        double deltaY = sin(currentAngle) * (navX.getYVelocity() / 0.0254) * 0.02; //converts from M/s to inches/sec then * 0.02 seconds to get deltaInches.
-        double deltaX = cos(currentAngle) * (navX.getYVelocity() / 0.0254) * 0.02;
-        yLoc += deltaY; //adds what we need.
-        xLoc += deltaX; //adds what we need.
-        System.out.println("IMUCalC: CurrentAngle: " + (int) +currentAngle + "|yLoc: " + (int) yLoc + "|xLoc: " + (int) xLoc);
-        System.out.println("Delta X: " + deltaX + "|Delta Y: " + deltaY);
+        double forwardSpeed = dt.getAvgSpd();
+        double deltaY = sin(currentAngle) * forwardSpeed; //converts from M/s to inches/sec then * 0.02 seconds to get deltaInches.
+        double deltaX = cos(currentAngle) * forwardSpeed;
+        yLoc += deltaY; //adds deltas to total.
+        xLoc += deltaX; //adds deltas to total
+//        System.out.println("IMUCalC: CurrentAngle: " + (int) currentAngle + "|yLoc: " + (int) yLoc + "|xLoc: " + (int) xLoc);
+//        System.out.println("Delta X: " + deltaX + "|Delta Y: " + deltaY);
+//        System.out.println("YVelocity: " + forwardSpeed);
     }
 
     /**
@@ -225,10 +238,7 @@ public class Auto {
 
         xOffset = xOffset - (relativeLLx * cos(currentAngle)) - (relativeLLy * sin(currentAngle));
         //System.out.println(" = " + xOffset);
-
-
         //System.out.print("Y=" + yOffset + " - " + relativeLLy*cos(getYaw) + " - " + relativeLLx*sin(getYaw));
-
         yOffset = yOffset - (relativeLLy * cos(currentAngle)) - (relativeLLx * sin(currentAngle));
         //System.out.println(" = " + yOffset);
 
@@ -290,7 +300,7 @@ public class Auto {
         //System.out.print("getAngleFrom...: TgtY " + (int) targetY + " - CurrentY" + (int) currentY + " = ");
         //System.out.println((int) deltaY + " = deltaY");
 
-        double radians = Math.atan2(deltaX, deltaY); //uses tangent to get angle.
+        double radians = Math.atan2(deltaY, deltaX); //uses tangent to get angle.
         return Math.toDegrees(radians); //returns angle in radians.
     }
 
@@ -307,7 +317,7 @@ public class Auto {
     /**
      * Lines up the robot to the target found by the limelight.
      */
-    boolean lineUp(Instruction target) {
+    private boolean lineUp(Instruction target) {
         setPipeline(target.getPipeline());
         if (tv.getDouble(0) == 0) { //no target found.
             System.out.println("main: ERROR : NO TARGET FOUND");
@@ -364,17 +374,16 @@ public class Auto {
         if (pipe != currentPipeline) { //if the new value is different than the past values, change it up.
             pipeline.setNumber(pipe);
             currentPipeline = pipe;
+            System.out.println("Changed Pipeline to " + pipe);
         }
     }
 
+    public void IMURESET() {
+        xLoc = 0;
+        yLoc = 0;
+    }
 }
 
-
-/**
- * Things changed
- * relativize added. Check functionality of relativize.
- * Calc following speed added. Edit min and maxes to do things.
- */
 
 /*
 Forrest: Tele-auto

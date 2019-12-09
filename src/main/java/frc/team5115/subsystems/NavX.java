@@ -49,7 +49,7 @@ public class NavX {
         yaw = navx.getYaw();
         yVelocity = navx.getVelocityY();
     }
-
+    //todome use this a bit to get a jist.
     public void printVelocities() { //it is for seeing if the x and y velocities are any good. Possible use for kightly drive.
         System.out.println("Y Velocity" + navx.getVelocityY());
     }

@@ -19,7 +19,7 @@ public class PortalInstruction extends Instruction {
 
     @Override
     public String toString() {
-        return "CubeInstruction at" +
+        return "PortalInstruction at" +
                 " x=" + x +
                 " y=" + y +
                 " and orientation=" + orientation +

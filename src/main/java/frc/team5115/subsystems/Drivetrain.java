@@ -36,8 +36,18 @@ public class Drivetrain {
         //called lots of times per seconds.
         y *= -1;
 
-        double rleftSpd = Math.max((x + y) * throttle, 0.5);
-        double rrightSpd = Math.max((x - y) * throttle, 0.5);
+
+        //todome test this.
+        //Math.sqrt(3.4* Math.log(x + y + 1));
+
+        leftSpd = Math.min((x + y) * throttle, 1);
+        rightSpd = Math.min((x - y) * throttle, 1);
+
+        leftSpd = Math.max(leftSpd, -1);
+        rightSpd = Math.max(rightSpd, -1);
+
+//        System.out.println("Setting Right Pair to :" + (int) rightSpd * 100);
+//        System.out.println("Setting Left Pair to :" + (int) leftSpd * 100);
 
         backLeft.set(ControlMode.PercentOutput, leftSpd);
         backRight.set(ControlMode.PercentOutput, rightSpd);
@@ -95,5 +105,14 @@ public class Drivetrain {
         } catch (InterruptedException e) {
             System.out.println("For some reason the sleep failed... Here's the exception: " + e.getMessage());
         }
+    }
+
+    double getAvgSpd() {
+        double rightSpd = frontRight.getSelectedSensorVelocity();
+        double leftSpd = -backLeft.getSelectedSensorVelocity();
+
+        final double poop = ((rightSpd + leftSpd) / 2) * 1.53846 * Math.PI / 4090;
+        //System.out.println("Current Wheel Spds: " + poop);
+        return poop;
     }
 }
