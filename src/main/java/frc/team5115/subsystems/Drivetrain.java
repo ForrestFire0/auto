@@ -2,16 +2,17 @@ package frc.team5115.subsystems;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import edu.wpi.first.wpilibj.Timer;
+import frc.team5115.autotools.DriveBase;
 import frc.team5115.robot.Robot;
 
-public class Drivetrain {
+public class Drivetrain implements DriveBase {
     //instances of the speed controllers
     private TalonSRX frontLeft;
     private TalonSRX frontRight;
     private TalonSRX backLeft;
     private TalonSRX backRight;
-    private double targetAngle;
+
+    private double targetAngle; //during regular operation, the drive train keeps control of the drive. This is the angle that it targets.
 
     private double rightSpd;
     private double leftSpd;
@@ -32,10 +33,15 @@ public class Drivetrain {
         backRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
     }
 
+    @Override
+    public void stop() {
+        drive(0,0,0);
+    }
+
+    @Override
     public void drive(double y, double x, double throttle) { //Change the drive output
         //called lots of times per seconds.
         y *= -1;
-
 
         //todome test this.
         //Math.sqrt(3.4* Math.log(x + y + 1));
@@ -53,12 +59,14 @@ public class Drivetrain {
         backRight.set(ControlMode.PercentOutput, rightSpd);
     }
 
+    @Override
     public void resetTargetAngle() { //set the current target angle to where we currently are.
         targetAngle = Robot.navX.getAngle();
         System.out.println("RESET RBW: Target Angle: " + targetAngle + " Current Angle: " + Robot.navX.getAngle());
     }
 
-    void angleHold(double currentAngle, double targetAngle, double y) {
+    @Override
+    public void angleHold(double currentAngle, double targetAngle, double y) {
         this.targetAngle = targetAngle;
         double kP = 0.02;
         //double kD = 0.01; Hey if you are implementing a d part, use the navx.getRate
@@ -67,10 +75,6 @@ public class Drivetrain {
         //double D = kD*((currentAngle - lastAngle)/0.02); //finds the difference in the last tick.
         P = Math.max(-0.5, Math.min(0.5, P));
         this.drive(y,P,1);
-    }
-
-    void angleHold(double targetAngle) { //Overridden magic.
-        this.angleHold(0, targetAngle, 0);
     }
 
     public void driveByWire(double x, double y) { //rotate by wire
@@ -107,12 +111,13 @@ public class Drivetrain {
         }
     }
 
-    double getAvgSpd() {
+    @Override
+    public double getAvgSpd() {
         double rightSpd = frontRight.getSelectedSensorVelocity();
         double leftSpd = -backLeft.getSelectedSensorVelocity();
 
-        final double poop = ((rightSpd + leftSpd) / 2) * 1.53846 * Math.PI / 4090;
-        //System.out.println("Current Wheel Spds: " + poop);
-        return poop;
+        final double wheelSpd = ((rightSpd + leftSpd) / 2) * 1.53846 * Math.PI / 4090;
+        System.out.println("Wheel Speeds = " + wheelSpd);
+        return wheelSpd;
     }
 }

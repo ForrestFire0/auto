@@ -3,16 +3,19 @@ package frc.team5115.subsystems;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import frc.team5115.autotools.DriveBase;
 import frc.team5115.autotools.Instruction;
 import frc.team5115.autotools.SimpleAutoSeries;
 import frc.team5115.robot.Robot;
 
-import static frc.team5115.robot.Robot.*;
 import static java.lang.Math.*;
 
-/**The base class for all autonomous using the limelight.*/
+/*The base class for all autonomous using the limelight.*/
 
 public class Auto {
+    private final NavX navX;
+    private final DriveBase dt;
+
     private NetworkTableEntry tx; // Measure of X offset angle
     private NetworkTableEntry ty; // Measure of Y offset angle
     private NetworkTableEntry tv;
@@ -21,19 +24,23 @@ public class Auto {
     private double xLoc;
     private double yLoc;
     private double currentAngle;
-
     private Instruction currentStep;
 
     private int currentPipeline;
 
     private final double maxForwardSpeed = 0.3; //The forward speed multiplier for moving.
     private final int maxAngleError = 10; //maximum angle error.
+    private boolean finished = false;
+
 
     /**
      * Creates the limelight table entries.
      */
     // Load in the network tables
-    public Auto() {
+    public Auto(DriveBase dt, NavX navX) {
+        this.dt = dt;
+        this.navX = navX;
+
         NetworkTable limelight = NetworkTableInstance.getDefault().getTable("limelight");
         tx = limelight.getEntry("tx"); //Angle in x of degrees
         ty = limelight.getEntry("ty"); //Angle in y of degrees
@@ -41,15 +48,27 @@ public class Auto {
         pipeline = limelight.getEntry("pipeline");
         pipeline.setNumber(0);
         currentPipeline = 0;
-
+        SimpleAutoSeries.reset();
         currentStep = SimpleAutoSeries.getCurrentStep();//get the first step to work on.
 
         System.out.println("Starting Autonomous. Starting Step 1: "  + currentStep);
     }
 
     public void runAuto() {
+
+        if(finished) {
+            dt.stop();
+            System.out.println("Restart Auto Using button 9");
+            return;
+        }
+
         IMUCalc(); //Calculate the current speed and such...
         currentStep = SimpleAutoSeries.getCurrentStep(); //Get the current step that we are working on...
+
+        if (currentStep == null) {
+            System.out.println("Error: Current Step is Null");
+            return;
+        }
 
         switch (currentStep.getType()) {
             case "Location":
@@ -61,6 +80,7 @@ public class Auto {
                         break;
                     case 2:
                         if (navigate(currentStep)) { //navagate to the point
+                            System.out.println("Done with the navigate section of the step...");
                             currentStep.nextStage();
                         }
                         break;
@@ -108,19 +128,20 @@ public class Auto {
             currentStep = SimpleAutoSeries.getNextStep();
             if (currentStep == null) {
                 System.out.println("Nice! You finished the auto routine! Congrats from Forrest in the past!");
+                finished = true;
             } else
             System.out.println("Moved on to next step, which is: " + currentStep);
         }
     }
 
     private boolean deadRecon(Instruction step) {
-        dt.angleHold(currentAngle, step.getOrientation() - 180, maxForwardSpeed); //look strait into the portal.
+        dt.angleHold(currentAngle, step.getOrientation() - 180, maxForwardSpeed/2); //look strait into the portal.
         return false; //todome This needs to stop when the step has completed.
     }
 
     private boolean aim(double orientation) {
         dt.angleHold(currentAngle, orientation, 0);
-        return Math.abs(currentAngle - orientation) < maxAngleError;
+        return abs(currentAngle - orientation) < maxAngleError;
     }
 
     /**
@@ -139,7 +160,7 @@ public class Auto {
         }
 
         double throttle = moveForward? 3/tx.getDouble(180) : 0; //3 degrees off is full throttle
-        throttle = Math.min(throttle, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
+        throttle = min(throttle, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
         dt.angleHold(currentAngle, angle, throttle);
 
         if(!moveForward) {
@@ -150,7 +171,9 @@ public class Auto {
     }
 
     private boolean doWeHaveACubeYet() {
-        return false; //todome fill this in with some sensor.
+        System.out.println("Error: No Method for tengo cube. Currently button 10.");
+        //todome fill this in with some sensor.
+        return Robot.joy.getRawButton(10);
     }
 
     //Navigate to a game piece. If we have made it too the game piece it will stop the
@@ -163,7 +186,9 @@ public class Auto {
         double deltaX = targetX - currentX; //get the difference in x values;
         double deltaY = targetY - currentY; //get the difference in y values;
 
-        if (deltaX < 5 && deltaY < 5) {
+        if (abs(deltaX) < 5 && abs(deltaY) < 5) {
+            System.out.println("deltaX = " + deltaX);
+            System.out.println("deltaY = " + deltaY);
             dt.drive(0,0,0);
             return true;
         }
@@ -172,7 +197,7 @@ public class Auto {
         double angle = toDegrees(radians); //returns angle in radians.
 
         double throttle = sqrt(pow(deltaX, 2) + pow(deltaY, 2)) / 300;
-        throttle = Math.min(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
+        throttle = min(throttle + 0.1, maxForwardSpeed); //max speed 0.5. Also add a minimum speed of 0.1.
         dt.angleHold(currentAngle, angle, -throttle);
         return false;
     }
@@ -184,8 +209,8 @@ public class Auto {
         double deltaX = targetX - xLoc; //get the difference in x values;
         double deltaY = targetY - yLoc; //get the difference in y values;
 
-        double radians = Math.atan2(deltaY, deltaX); //uses tangent to get angle.
-        double angle = Math.toDegrees(radians); //returns angle in radians.
+        double radians = atan2(deltaY, deltaX); //uses tangent to get angle.
+        double angle = toDegrees(radians); //returns angle in radians.
 
         dt.angleHold(currentAngle, angle, 0);
 //        System.out.println("Current Angle = " + currentAngle);
@@ -224,7 +249,7 @@ public class Auto {
         final double targetHeight = 36; //is it 36 inches???
         final double cameraHeight = 8; //update but it probably doesn't matter.
         final double cameraAngle = 23; //update
-        double hypotenuse = (targetHeight - cameraHeight) / Math.tan(Math.toRadians(ty.getDouble(0) + cameraAngle)); //
+        double hypotenuse = (targetHeight - cameraHeight) / tan(toRadians(ty.getDouble(0) + cameraAngle)); //
         //System.out.println(ty.getDouble(0) + cameraAngle + " = angle");
         //System.out.print("/" + Math.tan(Math.toRadians(ty.getDouble(0) + cameraAngle)));
         double yaw = currentAngle + tx.getDouble(0); //angle from the wall. Remember: negative is pointing to left, positive is to the right.
@@ -246,11 +271,11 @@ public class Auto {
     }
 
     private double sin(double n) {
-        return Math.sin(Math.toRadians(n));
+        return Math.sin(toRadians(n));
     }
 
     private double cos(double n) {
-        return Math.cos(Math.toRadians(n));
+        return Math.cos(toRadians(n));
     }
 
 
@@ -265,7 +290,7 @@ public class Auto {
         //getYaw: The current angle held RTF.
         //currentOffset: where the target is in the cameras vision. NOT RTF.
         double currentOffset = tx.getDouble(0);
-        double degreesLeft = 30 - Math.abs(currentOffset);//the amount of degrees we can move before we go off the field, ABS.
+        double degreesLeft = 30 - abs(currentOffset);//the amount of degrees we can move before we go off the field, ABS.
         //System.out.println("There are " + degreesLeft + " degrees left before the camera looses sight.");
 
         if (angleRequested - currentAngle > 30 + currentOffset) { //to the right
@@ -296,12 +321,12 @@ public class Auto {
         //System.out.print("getAngleFrom...: TgtX: " + (int) targetX + " - currentX: " + (int) currentX + " = ");
         //System.out.println((int) deltaX + " = deltaX");
 
-        double deltaY = Math.abs(targetY - currentY); //get the difference in y values;
+        double deltaY = abs(targetY - currentY); //get the difference in y values;
         //System.out.print("getAngleFrom...: TgtY " + (int) targetY + " - CurrentY" + (int) currentY + " = ");
         //System.out.println((int) deltaY + " = deltaY");
 
-        double radians = Math.atan2(deltaY, deltaX); //uses tangent to get angle.
-        return Math.toDegrees(radians); //returns angle in radians.
+        double radians = atan2(deltaY, deltaX); //uses tangent to get angle.
+        return toDegrees(radians); //returns angle in radians.
     }
 
     /**
@@ -310,7 +335,7 @@ public class Auto {
     private double locateTargetPoint(double yOffset) {
         //this finds the y value that we need to look at.
         //return -40; //returning 2 feet out from wall to the limelight at the moment. Once we get better at following things then we can
-        return Math.min(0.67 * yOffset, -30); //takes the smaller of the two values. Once the calculated target point is further forward than -30, the program designateds -30 as the target location.
+        return min(0.67 * yOffset, -30); //takes the smaller of the two values. Once the calculated target point is further forward than -30, the program designateds -30 as the target location.
         //Also note that this is the center of the robot, not the front of the robot. Add the relativeLLy to get the distance to the front of the robot.
     }
 
@@ -356,7 +381,7 @@ public class Auto {
     private double calcFollowingSpeed(double yOffset) {
         int distance = 200; //The distance where the slowing begins.
         double max = -0.5;   //The distance maximum motor values.
-        return Math.max((yOffset / distance) - 0.3, max); //subtract in order to ensure we always keep moving.
+        return max((yOffset / distance) - 0.3, max); //subtract in order to ensure we always keep moving.
     }
 
     private float relativize(int yaw) { //this assumes two targets, one looking at 0 and 180.
@@ -381,6 +406,7 @@ public class Auto {
     public void IMURESET() {
         xLoc = 0;
         yLoc = 0;
+        SimpleAutoSeries.reset();
     }
 }
 
