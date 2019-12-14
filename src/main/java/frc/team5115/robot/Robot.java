@@ -1,12 +1,13 @@
 package frc.team5115.robot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
+import frc.team5115.autotools.DriveBase;
 import frc.team5115.subsystems.*;
 
 //todome make a calibration method to move it to a certain distance and know the angle.
 public class Robot extends TimedRobot {
     public static Joystick joy;
-    public Drivetrain dt;
+    public DriveBase dt;
     public static NavX navX;
     private Auto auto;
 

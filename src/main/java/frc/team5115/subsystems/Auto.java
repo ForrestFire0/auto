@@ -343,10 +343,12 @@ public class Auto {
      * Lines up the robot to the target found by the limelight.
      */
     private boolean lineUp(Instruction target) {
+
         setPipeline(target.getPipeline());
         if (tv.getDouble(0) == 0) { //no target found.
-            System.out.println("main: ERROR : NO TARGET FOUND");
-            dt.drive(0, 0, 0);
+
+            System.out.println("No target found. Pointing at object.");
+            aim(currentStep); //just pointing generally.
             return false;
         }
 
@@ -362,8 +364,9 @@ public class Auto {
         double targetY = locateTargetPoint(yOffset);
         System.out.println("findAngle: TargetY: " + targetY);
         double angle = getAngleFromTargetPoint(xOffset, yOffset, targetY);
+        //todome use orientation to properly orientate the target angle. If the orientation is 0, then the target angle should be inc. by 180 because that is the direction it needs to look at.
         angle = safeAngle(angle);
-        targetAngle = currentAngle + ((angle - currentAngle) / 2);
+        targetAngle = currentAngle + ((angle - currentAngle) / 2); //slowly approach current angle.
 
         //System.out.println("main: targetAngle: " + (int) targetAngle);
 

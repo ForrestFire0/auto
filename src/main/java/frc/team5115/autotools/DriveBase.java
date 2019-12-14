@@ -34,6 +34,9 @@ public interface DriveBase {
         this.angleHold(0, targetAngle, 0); //this should work.
     }
 
+    void driveByWire(double x, double y);
+
+
     /**
      * @return gets the average speed from the encoders.
      */
