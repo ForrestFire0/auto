@@ -19,7 +19,6 @@ public class Drivetrain implements DriveBase {
 
     private NavX navX;
 
-
     public Drivetrain(NavX navX) {
         this.navX = navX;  //instantiation of the objects
 

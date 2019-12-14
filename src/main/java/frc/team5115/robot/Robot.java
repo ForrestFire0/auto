@@ -6,9 +6,9 @@ import frc.team5115.subsystems.*;
 
 //todome make a calibration method to move it to a certain distance and know the angle.
 public class Robot extends TimedRobot {
-    public Joystick joy;
-    public DriveBase dt;
-    public NavX navX;
+    private Joystick joy;
+    private DriveBase dt;
+    private NavX navX;
     private Auto auto;
 
     public void robotInit() {
