@@ -17,8 +17,12 @@ public class Drivetrain implements DriveBase {
     private double rightSpd;
     private double leftSpd;
 
+    private NavX navX;
 
-    public Drivetrain() {  //instantiation of the objects
+
+    public Drivetrain(NavX navX) {
+        this.navX = navX;  //instantiation of the objects
+
         frontLeft = new TalonSRX(1);
         frontRight = new TalonSRX(2);
         backLeft = new TalonSRX(3);
@@ -61,8 +65,8 @@ public class Drivetrain implements DriveBase {
 
     @Override
     public void resetTargetAngle() { //set the current target angle to where we currently are.
-        targetAngle = Robot.navX.getAngle();
-        System.out.println("RESET RBW: Target Angle: " + targetAngle + " Current Angle: " + Robot.navX.getAngle());
+        targetAngle = navX.getAngle();
+        System.out.println("RESET RBW: Target Angle: " + targetAngle + " Current Angle: " + navX.getAngle());
     }
 
     @Override
@@ -78,7 +82,7 @@ public class Drivetrain implements DriveBase {
     }
 
     public void driveByWire(double x, double y) { //rotate by wire
-        double currentAngle = Robot.navX.getAngle();
+        double currentAngle = navX.getAngle();
         targetAngle += x*2.5; //at 50 ticks a second, this is 50 degrees a second because the max x is 1.
         angleHold(currentAngle, targetAngle, y);
     }

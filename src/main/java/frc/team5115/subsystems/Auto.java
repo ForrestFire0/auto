@@ -4,9 +4,9 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.team5115.autotools.DriveBase;
+import frc.team5115.autotools.ErrList;
 import frc.team5115.autotools.Instruction;
 import frc.team5115.autotools.SimpleAutoSeries;
-import frc.team5115.robot.Robot;
 
 import static java.lang.Math.*;
 
@@ -32,7 +32,6 @@ public class Auto {
     private final int maxAngleError = 10; //maximum angle error.
     private boolean finished = false;
 
-
     /**
      * Creates the limelight table entries.
      */
@@ -40,6 +39,10 @@ public class Auto {
     public Auto(DriveBase dt, NavX navX) {
         this.dt = dt;
         this.navX = navX;
+
+        if(dt.getAvgSpd() > 0.1) {
+            ErrList.reportError(new Exception("Avg speed at start too high. Should be < 0.1, currently: " + dt.getAvgSpd()));
+        }
 
         NetworkTable limelight = NetworkTableInstance.getDefault().getTable("limelight");
         tx = limelight.getEntry("tx"); //Angle in x of degrees
@@ -66,7 +69,7 @@ public class Auto {
         currentStep = SimpleAutoSeries.getCurrentStep(); //Get the current step that we are working on...
 
         if (currentStep == null) {
-            System.out.println("Error: Current Step is Null");
+            ErrList.reportError(new Exception("Current step is null"));
             return;
         }
 
@@ -90,7 +93,7 @@ public class Auto {
                         }
                         break;
                     default:
-                        System.out.println("Error: Stage not recognized. Current Stage: " + currentStep.getStage() + " in Step " + SimpleAutoSeries.getStepNum());
+                        ErrList.reportError(new Exception("Stage not recognized. Current Stage: " + currentStep.getStage() + " in Step " + SimpleAutoSeries.getStepNum()));
                 }
                 break;
             case "Portal":
@@ -154,7 +157,7 @@ public class Auto {
         if (tv.getDouble(0) == 1) { // if we dont have a target
             angle = tx.getDouble(0) + currentAngle;
         } else {
-            System.out.println("No target found. Pointing at object.");
+            ErrList.reportError(new Exception("No target found. Pointing at object."));
             aim(currentStep); //just pointing generally.
             return false;
         }
@@ -171,9 +174,9 @@ public class Auto {
     }
 
     private boolean doWeHaveACubeYet() {
-        System.out.println("Error: No Method for tengo cube. Currently button 10.");
+        System.out.println("Error: No Method for having cube. Currently button 10.");
         //todome fill this in with some sensor.
-        return Robot.joy.getRawButton(10);
+        return false;
     }
 
     //Navigate to a game piece. If we have made it too the game piece it will stop the
@@ -189,7 +192,7 @@ public class Auto {
         if (abs(deltaX) < 5 && abs(deltaY) < 5) {
             System.out.println("deltaX = " + deltaX);
             System.out.println("deltaY = " + deltaY);
-            dt.drive(0,0,0);
+            dt.stop();
             return true;
         }
 
@@ -245,14 +248,17 @@ public class Auto {
     private double[] locFromLL() {
 
         //calculate values from navx and other things.
-        System.out.println("update3DPoints: Using Math");
         final double targetHeight = 36; //is it 36 inches???
         final double cameraHeight = 8; //update but it probably doesn't matter.
         final double cameraAngle = 23; //update
         double hypotenuse = (targetHeight - cameraHeight) / tan(toRadians(ty.getDouble(0) + cameraAngle)); //
         //System.out.println(ty.getDouble(0) + cameraAngle + " = angle");
         //System.out.print("/" + Math.tan(Math.toRadians(ty.getDouble(0) + cameraAngle)));
-        double yaw = currentAngle + tx.getDouble(0); //angle from the wall. Remember: negative is pointing to left, positive is to the right.
+        double txTEMP = tx.getDouble(0);
+        if(txTEMP < 0.001) {
+            ErrList.reportError(new Exception("tx not logical."));
+        }
+        double yaw = currentAngle + txTEMP; //angle from the wall. Remember: negative is pointing to left, positive is to the right.
         double yOffset = -sin(yaw) * hypotenuse;
         double xOffset = -cos(yaw) * hypotenuse;
         //The following turns adjusts the x and y values from the limelight to get the
@@ -294,11 +300,11 @@ public class Auto {
         //System.out.println("There are " + degreesLeft + " degrees left before the camera looses sight.");
 
         if (angleRequested - currentAngle > 30 + currentOffset) { //to the right
-            System.out.println("safeAnlge: Limited. Trying to move TO FAR TO THE RIGHT");
+            ErrList.reportError(new Exception("Limited. Trying to move TO FAR TO THE RIGHT"));
             //limit it to only come way to the right. add degrees left to the current angle.
             return currentAngle + degreesLeft;
         } else if (angleRequested - currentAngle < -30 + currentOffset) { //to the LEFT
-            System.out.println("safeAnlge: Limited. Trying to move TO FAR TO THE LEFT");
+            ErrList.reportError(new Exception("Limited. Trying to move TO FAR TO THE Left"));
             //limit it to only come way to the left. subtract degrees left to the current angle.
             //because it should be to the left, which is negative.
             return currentAngle - degreesLeft;
@@ -346,8 +352,7 @@ public class Auto {
 
         setPipeline(target.getPipeline());
         if (tv.getDouble(0) == 0) { //no target found.
-
-            System.out.println("No target found. Pointing at object.");
+            ErrList.reportError(new Exception("No target found. Pointing at object."));
             aim(currentStep); //just pointing generally.
             return false;
         }
@@ -394,7 +399,6 @@ public class Auto {
         if (leftOver < -90) {
             leftOver += 180;
         }
-
         return leftOver;
     }
 
@@ -409,6 +413,7 @@ public class Auto {
     public void IMURESET() {
         xLoc = 0;
         yLoc = 0;
+        ErrList.reportError(new Exception("Restarted Auto. This should be an anomaly."));
         SimpleAutoSeries.reset();
     }
 }

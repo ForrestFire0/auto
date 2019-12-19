@@ -3,6 +3,7 @@ package frc.team5115.subsystems;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.SPI;
 
+
 public class NavX {
     private AHRS navx; //turn baby.
     private double angle; //angle is total accumulated.
@@ -21,9 +22,8 @@ public class NavX {
         System.out.println("Angle has been reset.");
         System.out.println(navx.getYaw() + " = 0");
     }
-
     /**
-     * @return totalAccumulated Angle -gajillion to a gajillion
+     * @return totalAccumulated Angle -gazillion to a gazillion
      */
     double getAngle() {
         return angle;

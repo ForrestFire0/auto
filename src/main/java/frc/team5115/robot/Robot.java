@@ -6,18 +6,16 @@ import frc.team5115.subsystems.*;
 
 //todome make a calibration method to move it to a certain distance and know the angle.
 public class Robot extends TimedRobot {
-    public static Joystick joy;
+    public Joystick joy;
     public DriveBase dt;
-    public static NavX navX;
+    public NavX navX;
     private Auto auto;
-
 
     public void robotInit() {
         joy = new Joystick(0);
-        dt = new Drivetrain();
         navX = new NavX();
+        dt = new Drivetrain(navX);
         auto = new Auto(dt, navX);
-        isNewDataAvailable();
         dt.resetTargetAngle(); //set the target angle to where we are looking.
     }
 
